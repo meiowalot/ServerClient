@@ -143,6 +143,7 @@ namespace TcpChatServer
                         good = true;
                         _names.Add(newClient, name);
                         _messengers.Add(newClient);
+//                        _viewers.Add(newClient);
 
 												Console.WriteLine($"====================Adding CHAT client as viewer @ {addr}======================");
 												_viewers.Add(newClient);
