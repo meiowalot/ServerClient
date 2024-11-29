@@ -8,6 +8,8 @@ using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections.Concurrent;
+using Microsoft.VisualBasic;
 
 namespace TcpChatMessenger;
 
@@ -25,6 +27,7 @@ class TcpChatMessenger
 		// Buffer & messaging
 		public readonly int BufferSize = 2 * 1024;  // 2KB
 		private NetworkStream _msgStream = null;
+		private ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
 
 		// Personal data
 		public readonly string Name;
@@ -141,13 +144,30 @@ class TcpChatMessenger
 
 				Console.WriteLine("SendMessages(), while loop:");
 				Console.WriteLine("Entering SendMessages while loop");
+				string strKeysPressed = "", msg = "";
 				while (Running)
 				{
-						Console.WriteLine("Inside SendMessages while loop");
+//						Console.WriteLine("Inside SendMessages while loop");
 //						HandleMessages();
 						// Poll for user input
-						Console.Write("{0}> ", Name);
-						string msg = Console.ReadLine();
+//						Console.Write("{0}> ", Name);
+//						string msg = Console.ReadLine();
+						// get user input w/o blocking
+						if(Console.KeyAvailable)
+						{
+							ConsoleKeyInfo key = Console.ReadKey(true);
+							if(key.KeyChar >= 'a' && key.KeyChar <= 'z')
+							{
+								Console.WriteLine("Recv letter: " + key.KeyChar);
+								strKeysPressed += key.KeyChar;
+							}
+							if(key.KeyChar == '\r')
+							{
+								msg = strKeysPressed;
+								strKeysPressed = "";
+							} 
+						}
+						// end user input
 
 						// Quit or send a message
 						if ((msg.ToLower() == "quit") || (msg.ToLower() == "exit"))
@@ -162,6 +182,14 @@ class TcpChatMessenger
 								Console.WriteLine($"Sending message {msg}");
 								byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 								_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
+								msg = "";
+						}
+						if(!_queue.IsEmpty)
+						{
+							string str;
+							if(_queue.TryDequeue(out str))
+								Console.WriteLine("Msg from server: " + str);
+							else Console.WriteLine("TryDequeue failed");
 						}
 
 						// Use less CPU
@@ -289,7 +317,9 @@ class TcpChatMessenger
 
 								// Decode it and print it
 								string msg = Encoding.UTF8.GetString(msgBuffer);
-								Console.WriteLine("Message from server: "+ msg);
+//								Console.WriteLine("Message from server: "+ msg);
+								_queue.Enqueue(msg);
+//								Console.WriteLine($"_queue count is now {_queue.Count}");
 						}
 
 						// Use less CPU
