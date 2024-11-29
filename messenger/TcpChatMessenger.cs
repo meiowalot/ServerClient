@@ -82,15 +82,15 @@ class TcpChatMessenger
 				bool wasRunning = Running;
 				Console.WriteLine("HandleMessages()");
 
-//				Task.Run(()=>{
-				//Here is a new thread
-				SendMessages(); 
-//				});
-
 				Task.Run(()=>{
 				//Here is a new thread
-				ListenForMessages(); 
+				SendMessages(); 
 				});
+
+//				Task.Run(()=>{
+				//Here is a new thread
+				ListenForMessages(); 
+//				});
 
 /*
 				while (Running)
@@ -144,7 +144,7 @@ class TcpChatMessenger
 				while (Running)
 				{
 						Console.WriteLine("Inside SendMessages while loop");
-
+//						HandleMessages();
 						// Poll for user input
 						Console.Write("{0}> ", Name);
 						string msg = Console.ReadLine();
@@ -268,7 +268,7 @@ class TcpChatMessenger
 				{
 						// Do we have a new message?
 						int messageLength = _client.Available;
-						Console.WriteLine($"Got message, length {messageLength}");
+//						Console.WriteLine($"Got message, length {messageLength}");
 						if (messageLength > 0)
 						{
 								Console.WriteLine("New incoming message of {0} bytes", messageLength);
@@ -289,7 +289,7 @@ class TcpChatMessenger
 
 								// Decode it and print it
 								string msg = Encoding.UTF8.GetString(msgBuffer);
-								Console.WriteLine(msg);
+								Console.WriteLine("Message from server: "+ msg);
 						}
 
 						// Use less CPU
@@ -320,19 +320,24 @@ class TcpChatMessenger
 				// Get a name
 				Console.Write("Enter a name to use: ");
 				string name = Console.ReadLine();
+				Console.WriteLine("After getting the name");
 
 				// Setup the Messenger
 				//string host = "localhost";//args[0].Trim();
-				string host = "10.0.1.201";//args[0].Trim();
+				string host = "localhost";//args[0].Trim();
 				int port = 6000;//int.Parse(args[1].Trim());
 				TcpChatMessenger messenger = new TcpChatMessenger(host, port, name);
 
 				// connect and send messages
+				Console.WriteLine("messenger.Connect");
 				messenger.Connect();
+				Console.WriteLine("messenger.ConnectViewer");
 				messenger.ConnectViewer();
 				//messenger.SendMessages();
 				//messenger.ListenForMessages();
+				Console.WriteLine("messenger.HandleMessgaes");
 				messenger.HandleMessages();
+				Console.WriteLine("end");
 		}
 
 /*

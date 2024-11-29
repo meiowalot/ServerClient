@@ -169,9 +169,10 @@ namespace TcpChatViewer
 
         public static void NotMain(string[] args)
         {
+            Console.WriteLine("NotMain");
             // Setup the Viewer
             //string host = "localhost";//args[0].Trim();
-            string host = "10.0.1.201";//args[0].Trim();
+            string host = "localhost";//args[0].Trim();
             int port = 6000;//int.Parse(args[1].Trim());
             viewer = new TcpChatViewer(host, port);
 

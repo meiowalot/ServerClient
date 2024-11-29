@@ -1,0 +1,15 @@
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\bin\Debug\net8.0\TcpChatMessenger.exe
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\bin\Debug\net8.0\TcpChatMessenger.deps.json
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\bin\Debug\net8.0\TcpChatMessenger.runtimeconfig.json
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\bin\Debug\net8.0\TcpChatMessenger.dll
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\bin\Debug\net8.0\TcpChatMessenger.pdb
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.GeneratedMSBuildEditorConfig.editorconfig
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.AssemblyInfoInputs.cache
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.AssemblyInfo.cs
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.csproj.CoreCompileInputs.cache
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.sourcelink.json
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.dll
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\refint\TcpChatMessenger.dll
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.pdb
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\TcpChatMessenger.genruntimeconfig.cache
+c:\Users\Dad\source\repos\meiowalot\ServerClient\ServerClient\messenger\obj\Debug\net8.0\ref\TcpChatMessenger.dll
