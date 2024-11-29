@@ -91,7 +91,7 @@ namespace TcpChatServer
             Console.WriteLine("Server is shut down.");
         }
             
-        private void _handleNewConnection()
+        private async void _handleNewConnection()
         {
             // There is (at least) one, see what they want
             bool good = false;
@@ -108,24 +108,29 @@ namespace TcpChatServer
 
             // Let them identify themselves
             byte[] msgBuffer = new byte[BufferSize];
-            int bytesRead = netStream.Read(msgBuffer, 0, msgBuffer.Length);     // Blocks
+            int bytesRead = await netStream.ReadAsync(msgBuffer, 0, msgBuffer.Length);     // Blocks
             //Console.WriteLine("Got {0} bytes.", bytesRead);
             if (bytesRead > 0)
             {
                 string msg = Encoding.UTF8.GetString(msgBuffer, 0, bytesRead);
+								var ip = IPAddress.Parse(((IPEndPoint)endPoint).Address.ToString());
+								var port = IPAddress.Parse(((IPEndPoint)endPoint).Port.ToString());
+								var addr = $"{ip}:{port}";
 
                 if (msg == "viewer")
                 {
                     // They just want to watch
+										Console.WriteLine($"====================Adding viewer @ {addr}======================");
                     good = true;
                     _viewers.Add(newClient);
+										ShowViewers();
 
                     Console.WriteLine("{0} is a Viewer.", endPoint);
 
                     // Send them a "hello message"
                     msg = String.Format("Welcome to the \"{0}\" Chat Server!", ChatName);
                     msgBuffer = Encoding.UTF8.GetBytes(msg);
-                    netStream.Write(msgBuffer, 0, msgBuffer.Length);    // Blocks
+                    netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
                 }
                 else if (msg.StartsWith("name:"))
                 {
@@ -138,6 +143,10 @@ namespace TcpChatServer
                         good = true;
                         _names.Add(newClient, name);
                         _messengers.Add(newClient);
+
+												Console.WriteLine($"====================Adding CHAT client as viewer @ {addr}======================");
+												_viewers.Add(newClient);
+												ShowViewers();
 
                         Console.WriteLine("{0} is a Messenger with the name {1}.", endPoint, name);
 
@@ -157,6 +166,27 @@ namespace TcpChatServer
             if (!good)
                 newClient.Close();
         }
+
+				private void ShowViewers()
+				{
+						if (_viewers.Count == 0)
+						{
+							Console.WriteLine("Viewers has 0 items");
+							return;
+						}
+	
+						int i = 0;	
+						Console.WriteLine("Viewers:");
+            foreach (TcpClient v in _viewers.ToArray())
+						{
+								var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
+								var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
+								var addr = $"{ip}:{port}";
+								Console.WriteLine($"{++i}. {addr}");
+
+						}
+
+				}
 
         // Sees if any of the clients have left the chat server
         private void _checkForDisconnects()
@@ -204,10 +234,12 @@ namespace TcpChatServer
                 {
                     // there is one!  get it
                     byte[] msgBuffer = new byte[messageLength];
-                    m.GetStream().Read(msgBuffer, 0, msgBuffer.Length);     // Blocks
+                    m.GetStream().ReadAsync(msgBuffer, 0, msgBuffer.Length);     // Blocks
 
                     // Attach a name to it and shove it into the queue
                     string msg = String.Format("{0}: {1}", _names[m], Encoding.UTF8.GetString(msgBuffer));
+										var msgSender = _names[m];	
+										Console.WriteLine($"Enqueuing message {msg} from {msgSender}");
                     _messageQueue.Enqueue(msg);
                 }
             }
@@ -223,7 +255,13 @@ namespace TcpChatServer
 
                 // Send the message to each viewer
                 foreach (TcpClient v in _viewers)
-                    v.GetStream().Write(msgBuffer, 0, msgBuffer.Length);    // Blocks
+								{
+										var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
+										var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
+										var addr = $"{ip}:{port}";
+										Console.WriteLine($"Sending message {msg} to viewer @ {addr}");
+                    v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
+								}
             }
 
             // clear out the queue
