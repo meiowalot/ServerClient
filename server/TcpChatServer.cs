@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Linq.Expressions;
 
 namespace TcpChatServer
 {
@@ -117,7 +118,7 @@ namespace TcpChatServer
 								var port = IPAddress.Parse(((IPEndPoint)endPoint).Port.ToString());
 								var addr = $"{ip}:{port}";
 
-                if (msg == "viewer")
+               /* if (msg == "viewer")
                 {
                     // They just want to watch
 										Console.WriteLine($"====================Adding viewer @ {addr}======================");
@@ -132,7 +133,7 @@ namespace TcpChatServer
                     msgBuffer = Encoding.UTF8.GetBytes(msg);
                     netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
                 }
-                else if (msg.StartsWith("name:"))
+                else*/ if (msg.StartsWith("name:"))
                 {
                     // Okay, so they might be a messenger
                     string name = msg.Substring(msg.IndexOf(':') + 1);
@@ -177,7 +178,7 @@ namespace TcpChatServer
 						}
 	
 						int i = 0;	
-						Console.WriteLine("Viewers:");
+/*						Console.WriteLine("Viewers:");
             foreach (TcpClient v in _viewers.ToArray())
 						{
 								var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
@@ -186,14 +187,14 @@ namespace TcpChatServer
 								Console.WriteLine($"{++i}. {addr}");
 
 						}
-
+*/
 				}
 
         // Sees if any of the clients have left the chat server
         private void _checkForDisconnects()
         {
             // Check the viewers first
-            foreach (TcpClient v in _viewers.ToArray())
+/*            foreach (TcpClient v in _viewers.ToArray())
             {
                 if (_isDisconnected(v))
                 {
@@ -201,15 +202,20 @@ namespace TcpChatServer
 
                     // cleanup on our end
                     _viewers.Remove(v);     // Remove from list
+                    Console.WriteLine("calling _cleanupClient");
                     _cleanupClient(v);
+                    Console.WriteLine("After calling _cleanupClient");
                 }
             }
-
+*/
+//          Console.WriteLine("checking m array");
             // Check the messengers second
             foreach (TcpClient m in _messengers.ToArray())
             {
+//                Console.WriteLine($"are they disc? {m == null} ");
                 if (_isDisconnected(m))
                 {
+                    Console.WriteLine("m is disconnected");
                     // Get info about the messenger
                     string name = _names[m];
 
@@ -218,9 +224,13 @@ namespace TcpChatServer
                     _messageQueue.Enqueue(String.Format("{0} has left the chat", name));
 
                     // clean up on our end 
+                    Console.WriteLine("removing");
                     _messengers.Remove(m);  // Remove from list
+                    Console.WriteLine("removing name");
                     _names.Remove(m);       // Remove taken name
+                    Console.WriteLine("cleanup Client");
                     _cleanupClient(m);
+                    Console.WriteLine("after");
                 }
             }
         }
@@ -252,17 +262,30 @@ namespace TcpChatServer
             foreach (string msg in _messageQueue)
             {
                 // Encode the message
+                if(msg == null)
+                {
+                    Console.WriteLine("Message is null");
+                    return;
+                }
                 byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 
                 // Send the message to each viewer
                 foreach (TcpClient v in _viewers)
-								{
-										var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
-										var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
-										var addr = $"{ip}:{port}";
-										Console.WriteLine($"Sending message {msg} to viewer @ {addr}");
+				{
+                    if(v.Client == null)
+                        continue;
+//                    Console.WriteLine("Get ip");
+//                    Console.WriteLine($"v is null? {v == null}");
+//                    Console.WriteLine($"v.Client is null? {v?.Client == null}");
+//                    Console.WriteLine($"v.Client.RemoteEndPoint is null? {v?.Client?.RemoteEndPoint == null}");
+					var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
+					Console.WriteLine("Get port");
+                    var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
+					Console.WriteLine("Get addr");
+                    var addr = $"{ip}:{port}";
+					Console.WriteLine($"Sending message {msg} to viewer @ {addr}");
                     v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
-								}
+				}
             }
 
             // clear out the queue
@@ -275,7 +298,17 @@ namespace TcpChatServer
         {
             try
             {
+                if(client == null)
+                {
+                    Console.WriteLine("client is null");
+                    return true;
+                }
                 Socket s = client.Client;
+                if(s == null)
+                {
+                    Console.WriteLine("Socket is null");
+                    return true;
+                }
                 return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
             }
             catch(SocketException se)
@@ -288,8 +321,15 @@ namespace TcpChatServer
         // cleans up resources for a TcpClient
         private static void _cleanupClient(TcpClient client)
         {
-            client.GetStream().Close();     // Close network stream
-            client.Close();                 // Close client
+            try
+            {
+            client?.GetStream()?.Close();     // Close network stream
+            client?.Close();                 // Close client
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Exception caught: " + ex.Message);
+            }
         }
 
         public static TcpChatServer chat;

@@ -362,7 +362,7 @@ class TcpChatMessenger
 				Console.WriteLine("messenger.Connect");
 				messenger.Connect();
 				Console.WriteLine("messenger.ConnectViewer");
-				messenger.ConnectViewer();
+				//messenger.ConnectViewer();
 				//messenger.SendMessages();
 				//messenger.ListenForMessages();
 				Console.WriteLine("messenger.HandleMessgaes");
