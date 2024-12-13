@@ -3,6 +3,7 @@
 // License:   Unlicense (http://unlicense.org/)        
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Text;
 using System.Net;
@@ -17,6 +18,7 @@ class TcpChatMessenger
 {
 		// Viewer
 		private bool _disconnectRequested = false;
+		private readonly IConfiguration _configuration;
 
 		// Connection objects
 		public readonly string ServerAddress;
@@ -32,6 +34,29 @@ class TcpChatMessenger
 		// Personal data
 		public readonly string Name;
 
+		public TcpChatMessenger(IConfiguration configuration)
+		{
+			Console.WriteLine("Chat messenger ctor, DI config");
+			_configuration = configuration;
+		}
+
+		public void Setup()
+		{
+				// Create a non-connected TcpClient
+				_client = new TcpClient();          // Other constructors will start a connection
+				_client.SendBufferSize = BufferSize;
+				_client.ReceiveBufferSize = BufferSize;
+				Running = false;
+
+				// Set the other things
+				/*
+				ServerAddress = serverAddress;
+				Port = port;
+				Name = name;
+				*/
+		}
+
+/*
 		public TcpChatMessenger(string serverAddress, int port, string name)
 		{
 				// Create a non-connected TcpClient
@@ -45,6 +70,7 @@ class TcpChatMessenger
 				Port = port;
 				Name = name;
 		}
+*/
 
 		public void Connect()
 		{
@@ -354,9 +380,12 @@ class TcpChatMessenger
 
 				// Setup the Messenger
 				//string host = "localhost";//args[0].Trim();
-				string host = "localhost";//args[0].Trim();
+
+				// Read Config
+
+				string host = "69.48.204.173";//args[0].Trim();
 				int port = 6000;//int.Parse(args[1].Trim());
-				TcpChatMessenger messenger = new TcpChatMessenger(host, port, name);
+				TcpChatMessenger messenger = new TcpChatMessenger(new Configuration());
 
 				// connect and send messages
 				Console.WriteLine("messenger.Connect");
@@ -559,3 +588,12 @@ namespace TcpChatViewer
 
 } // class
 
+
+/*
+public class ValueController: ControllerBase {
+
+	public ValueController(IConfiguration configuration) {
+		_configuration = configuration;
+	}
+}
+*/
