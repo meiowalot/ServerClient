@@ -68,7 +68,9 @@ class TcpChatClient
 						Console.WriteLine("Getting stream");
 						_msgStream = _client.GetStream();
 						//byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", Name));
-						byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", "Joey"));
+	
+						Console.WriteLine($"Name is {Name}");
+						byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", Name));
 
 						Console.WriteLine("Writing stream");
 						_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
