@@ -37,13 +37,16 @@ namespace TcpChatServer
         // Make a new TCP chat server, with our provided name
         public TcpChatServer(string chatName, int port)
         {
+            Console.WriteLine("Starting up");
+
             // Set the basic data
             ChatName = chatName;
             Port = port;
             Running = false;
 
             // Make the listener listen for connections on any network device
-            _listener = new TcpListener(IPAddress.Any, Port);
+            //_listener = new TcpListener(IPAddress.Any, Port);
+            _listener = new TcpListener(IPAddress.Parse("10.0.1.201"), Port);
         }
 
         // If the server is running, this will shut down the server
@@ -103,7 +106,7 @@ namespace TcpChatServer
             newClient.ReceiveBufferSize = BufferSize;
 
             // Print some info
-            EndPoint endPoint = newClient.Client.RemoteEndPoint;
+            EndPoint? endPoint = newClient.Client.RemoteEndPoint;
             Console.WriteLine("Handling a new client from {0}...", endPoint);
 
             // Let them identify themselves
@@ -112,15 +115,16 @@ namespace TcpChatServer
             //Console.WriteLine("Got {0} bytes.", bytesRead);
             if (bytesRead > 0)
             {
+								Console.WriteLine("Read bytes");
                 string msg = Encoding.UTF8.GetString(msgBuffer, 0, bytesRead);
-								var ip = IPAddress.Parse(((IPEndPoint)endPoint).Address.ToString());
+								IPAddress? ip = IPAddress.Parse(((IPEndPoint)endPoint).Address.ToString());
 								var port = IPAddress.Parse(((IPEndPoint)endPoint).Port.ToString());
-								var addr = $"{ip}:{port}";
+								string addr = $"{ip}:{port}";
 
                 if (msg == "viewer")
                 {
                     // They just want to watch
-										Console.WriteLine($"====================Adding viewer @ {addr}======================");
+										Console.WriteLine($"=======Adding viewer @ {addr}===========");
                     good = true;
                     _viewers.Add(newClient);
 										ShowViewers();
@@ -130,12 +134,14 @@ namespace TcpChatServer
                     // Send them a "hello message"
                     msg = String.Format("Welcome to the \"{0}\" Chat Server!", ChatName);
                     msgBuffer = Encoding.UTF8.GetBytes(msg);
-                    netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
+                    await netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
                 }
                 else if (msg.StartsWith("name:"))
                 {
+										Console.WriteLine("Signing in with name");
                     // Okay, so they might be a messenger
                     string name = msg.Substring(msg.IndexOf(':') + 1);
+										Console.WriteLine($"Name is {name}");
 
                     if ((name != string.Empty) && (!_names.ContainsValue(name)))
                     {
@@ -184,9 +190,7 @@ namespace TcpChatServer
 								var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
 								var addr = $"{ip}:{port}";
 								Console.WriteLine($"{++i}. {addr}");
-
 						}
-
 				}
 
         // Sees if any of the clients have left the chat server
@@ -278,7 +282,7 @@ namespace TcpChatServer
                 Socket s = client.Client;
                 return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
             }
-            catch(SocketException se)
+            catch(SocketException)
             {
                 // We got a socket error, assume it's disconnected
                 return true;
@@ -292,7 +296,7 @@ namespace TcpChatServer
             client.Close();                 // Close client
         }
 
-        public static TcpChatServer chat;
+        public static TcpChatServer? chat;
 
         protected static void InterruptHandler(object sender, ConsoleCancelEventArgs args)
         {
@@ -303,8 +307,8 @@ namespace TcpChatServer
         public static void Main(string[] args)
         {
             // Create the server
-            string name = "Bad IRC";//args[0].Trim();
-            int port = 6000;//int.Parse(args[1].Trim());
+            string name = "Bad IRC";
+            int port = 6000;
             chat = new TcpChatServer(name, port);
 
             // Add a handler for a Ctrl-C press
