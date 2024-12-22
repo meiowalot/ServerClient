@@ -2,42 +2,41 @@
 // Author:    Benjamin N. Summerton <define-private-public>        
 // License:   Unlicense (http://unlicense.org/)        
 
-//using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using System;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Collections.Concurrent;
-using Microsoft.VisualBasic;
 
 namespace TcpChatMessenger;
 
-class TcpChatClient
+class Client
 {
 		// Viewer
-		private bool _disconnectRequested = false;
+		private readonly bool _disconnectRequested = false;
 		private readonly IConfiguration _configuration;
 
 		private AppConfig _config;
 
 		// Connection objects
-		public string ServerAddress;
-		public int Port;
-		private TcpClient _client;
+		public string? ServerAddress;
+		public int? Port;
+
+		// Chat Username
+		public string? Name;
+
+		private TcpClient? _client;
 
 		public bool Running { get; private set; }
 
 		// Buffer & messaging
 		public readonly int BufferSize = 2 * 1024;  // 2KB
-		private NetworkStream _msgStream = null;
-		private ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
+		private NetworkStream? _msgStream = null;
+		private readonly ConcurrentQueue<string> _queue = new ConcurrentQueue<string>();
 
 		// Personal data
-		public  string Name;
 
-		public TcpChatClient(IConfiguration configuration, AppConfig config)
+		public Client(IConfiguration configuration, AppConfig config)
 		{
 			Console.WriteLine("Chat messenger ctor, DI config");
 			_configuration = configuration;
@@ -48,249 +47,248 @@ class TcpChatClient
 
 		public void Connect()
 		{
-				Console.WriteLine("Connect()");
-				String host = _config.ServerAddress;
-				int port = _config.ServerPort;
-				Console.WriteLine($"Read config address {host}");
-				Console.WriteLine($"Read config port    {port}");
+			Console.WriteLine("Connect()");
+			String host = _config.ServerAddress;
+			int port = _config.ServerPort;
+			Console.WriteLine($"Read config address {host}");
+			Console.WriteLine($"Read config port    {port}");
 
-				Console.WriteLine("Connecting to client");
-				_client.Connect(host, port);       // Will resolve DNS for us; blocks
-				EndPoint endPoint = _client.Client.RemoteEndPoint;
+			Console.WriteLine("Connecting to client");
+			_client?.Connect(host, port);       // Will resolve DNS for us; blocks
+			EndPoint endPoint = _client.Client.RemoteEndPoint;
 
-				// Make sure we're connected
-				if (_client.Connected)
-				{
-						// Got in!
-						Console.WriteLine("Connected to the server at endpoint {0}.", endPoint);
+			// Make sure we're connected
+			if (_client.Connected)
+			{
+				// Got in!
+				Console.WriteLine("Connected to the server at endpoint {0}.", endPoint);
 
-						// Tell them that we're a messenger
-						Console.WriteLine("Getting stream");
-						_msgStream = _client.GetStream();
-						//byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", Name));
-	
-						Console.WriteLine($"Name is {Name}");
-						byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", Name));
+				// Tell them that we're a messenger
+				Console.WriteLine("Getting stream");
+				_msgStream = _client.GetStream();
 
-						Console.WriteLine("Writing stream");
-						_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
+				Console.WriteLine($"Name is {Name}");
+				byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", Name));
 
-						// If we're still connected after sending our name, that means the server accepts us
-						Console.WriteLine("Still connected after sending our name, server accepts us");
-						if (!_isDisconnected(_client))
-								Running = true;
-						else
-						{
-								// Name was probably taken...
-								_cleanupNetworkResources();
-								Console.WriteLine("The server rejected us; \"{0}\" is probably in use.", Name);
-						}
-				}
+				Console.WriteLine("Writing stream");
+				_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
+
+				// If we're still connected after sending our name, that means the server accepts us
+				Console.WriteLine("Still connected after sending our name, server accepts us");
+				if (!IsDisconnected(_client))
+					Running = true;
 				else
 				{
-						_cleanupNetworkResources();
-						Console.WriteLine("Wasn't able to connect to the server at {0}.", endPoint);
+					// Name was probably taken...
+					CleanupNetworkResources();
+					Console.WriteLine("The server rejected us; \"{0}\" is probably in use.", Name);
 				}
+			}
+			else
+			{
+				CleanupNetworkResources();
+				Console.WriteLine("Wasn't able to connect to the server at {0}.", endPoint);
+			}
 		}
 
 		public void HandleMessages() 
 		{
-				bool wasRunning = Running;
-				Console.WriteLine("HandleMessages()");
+			bool wasRunning = Running;
+			Console.WriteLine("HandleMessages()");
 
-				Task.Run(()=>{
-					SendMessages(); 
-				});
+			Task.Run(()=>{
+				SendMessages(); 
+			});
 
-				ListenForMessages(); 
-
+			ListenForMessages(); 
 		}
 
 		public void SendMessages()
 		{
-				bool wasRunning = Running;
+			bool wasRunning = Running;
 
-				Console.WriteLine("SendMessages(), while loop:");
-				Console.WriteLine("Entering SendMessages while loop");
-				string strKeysPressed = "", msg = "";
-				while (Running)
+			Console.WriteLine("SendMessages(), while loop:");
+			Console.WriteLine("Entering SendMessages while loop");
+			string strKeysPressed = "", msg = "";
+			while (Running)
+			{
+				// get user input w/o blocking
+				if(Console.KeyAvailable)
 				{
-						// get user input w/o blocking
-						if(Console.KeyAvailable)
-						{
-							ConsoleKeyInfo key = Console.ReadKey(true);
-							if(key.KeyChar >= 'a' && key.KeyChar <= 'z')
-							{
-								Console.WriteLine("Recv letter: " + key.KeyChar);
-								strKeysPressed += key.KeyChar;
-							}
-							if(key.KeyChar == '\r')
-							{
-								msg = strKeysPressed;
-								strKeysPressed = "";
-							} 
-						}
-						// end user input
+					ConsoleKeyInfo key = Console.ReadKey(true);
+					if(key.KeyChar >= 'a' && key.KeyChar <= 'z')
+					{
+						Console.WriteLine("Recv letter: " + key.KeyChar);
+						strKeysPressed += key.KeyChar;
+					}
+					if(key.KeyChar == '\r')
+					{
+						msg = strKeysPressed;
+						strKeysPressed = "";
+					} 
+				}
+				// end user input
 
-						// Quit or send a message
-						if ((msg.ToLower() == "quit") || (msg.ToLower() == "exit"))
-						{
-								// User wants to quit
-								Console.WriteLine("Disconnecting...");
-								Running = false;
-						}
-						else if (msg != string.Empty)
-						{
-								// Send the message
-								Console.WriteLine($"Sending message {msg}");
-								byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
-								_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
-								msg = "";
-						}
-						if(!_queue.IsEmpty)
-						{
-							string str;
-							if(_queue.TryDequeue(out str))
-								Console.WriteLine("Msg from server: " + str);
-							else Console.WriteLine("TryDequeue failed");
-						}
-
-						// Use less CPU
-						Thread.Sleep(10);
-
-						// Check the server didn't disconnect us
-						if (_isDisconnected(_client))
-						{
-								Running = false;
-								Console.WriteLine("Server has disconnected from us.\n:[");
-						}
+				// Quit or send a message
+				if (msg.ToLower() is "quit" or "exit")
+				{
+					// User wants to quit
+					Console.WriteLine("Disconnecting...");
+					Running = false;
+				}
+				else if (msg != string.Empty)
+				{
+					// Send the message
+					Console.WriteLine($"Sending message {msg}");
+					byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
+					_msgStream?.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
+					msg = "";
+				}
+				if(!_queue.IsEmpty)
+				{
+					if(_queue.TryDequeue(out string? str))
+						Console.WriteLine("Msg from server: " + str);
+					else 
+						Console.WriteLine("TryDequeue failed");
 				}
 
-				_cleanupNetworkResources();
-				if (wasRunning)
-						Console.WriteLine("Disconnected.");
+				// Use less CPU
+				Thread.Sleep(10);
 
-				Console.WriteLine($"Leaving SendMessages()");
+				// Check the server didn't disconnect us
+				if (IsDisconnected(_client))
+				{
+					Running = false;
+					Console.WriteLine("Server has disconnected from us.\n:[");
+				}
+			}
+
+			CleanupNetworkResources();
+			if (wasRunning)
+					Console.WriteLine("Disconnected.");
+
+			Console.WriteLine($"Leaving SendMessages()");
 		}
 
 		// Cleans any leftover network resources
-		private void _cleanupNetworkResources()
+		private void CleanupNetworkResources()
 		{
-				_msgStream?.Close();
-				_msgStream = null;
-				_client.Close();
+			_msgStream?.Close();
+			_msgStream = null;
+			_client.Close();
 		}
 
 		// Checks if a socket has disconnected
 		// Adapted from -- http://stackoverflow.com/questions/722240/instantly-detect-client-disconnection-from-server-socket
-		private static bool _isDisconnected(TcpClient client)
+		private static bool IsDisconnected(TcpClient client)
 		{
-				try
-				{
-						Socket s = client.Client;
-						return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
-				}
-				catch(SocketException se)
-				{
-						// We got a socket error, assume it's disconnected
-						return true;
-				}
+			try
+			{
+				Socket s = client.Client;
+				return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
+			}
+			catch(SocketException)
+			{
+				// We got a socket error, assume it's disconnected
+				return true;
+			}
 		}
 
 		// connects to the chat server
 		public void ConnectViewer()
 		{
-				// Now try to connect
-				// Send them the message that we're a viewer
-				_msgStream = _client.GetStream();
-				byte[] msgBufferViewer = Encoding.UTF8.GetBytes("viewer");
-				_msgStream.Write(msgBufferViewer, 0, msgBufferViewer.Length);     // Blocks
-				return;
+			// Now try to connect
+			// Send them the message that we're a viewer
+			_msgStream = _client?.GetStream();
+			byte[] msgBufferViewer = Encoding.UTF8.GetBytes("viewer");
+			_msgStream?.Write(msgBufferViewer, 0, msgBufferViewer.Length);     // Blocks
+			return;
 		}
 
 		// Main loop, listens and prints messages from the server
 		public void ListenForMessages()
 		{
-				bool wasRunning = Running;
+			bool wasRunning = Running;
 
-				Console.WriteLine("ListenForMessages(), while loop:");
-				if (_client is null)
-					Console.WriteLine("LFM: client is null");
-				// Listen for messages
-				while (Running)
+			Console.WriteLine("ListenForMessages(), while loop:");
+			if (_client is null)
+				Console.WriteLine("LFM: client is null");
+			// Listen for messages
+			while (Running)
+			{
+				// Do we have a new message?
+				int messageLength = _client.Available;
+				if (messageLength > 0)
 				{
-						// Do we have a new message?
-						int messageLength = _client.Available;
-						if (messageLength > 0)
-						{
-								Console.WriteLine("New incoming message of {0} bytes", messageLength);
+					Console.WriteLine("New incoming message of {0} bytes", messageLength);
 
-								// Read the whole message
-								byte[] msgBuffer = new byte[messageLength];
-								_msgStream.Read(msgBuffer, 0, messageLength);   // Blocks
+					// Read the whole message
+					byte[] msgBuffer = new byte[messageLength];
+					_msgStream?.Read(msgBuffer, 0, messageLength);   // Blocks
 
-								// An alternative way of reading
-								//int bytesRead = 0;
-								//while (bytesRead < messageLength)
-								//{
-								//    bytesRead += _msgStream.Read(_msgBuffer,
-								//                                 bytesRead,
-								//                                 _msgBuffer.Length - bytesRead);
-								//    Thread.Sleep(1);    // Use less CPU
-								//}
+					// An alternative way of reading
+					//int bytesRead = 0;
+					//while (bytesRead < messageLength)
+					//{
+					//    bytesRead += _msgStream.Read(_msgBuffer,
+					//                                 bytesRead,
+					//                                 _msgBuffer.Length - bytesRead);
+					//    Thread.Sleep(1);    // Use less CPU
+					//}
 
-								// Decode it and print it
-								string msg = Encoding.UTF8.GetString(msgBuffer);
-								_queue.Enqueue(msg);
-						}
-
-						// Use less CPU
-						Thread.Sleep(10);
-
-						// Check the server didn't disconnect us
-						if (_isDisconnected(_client))
-						{
-								Running = false;
-								Console.WriteLine("Server has disconnected from us.\n:[");
-						}
-
-						// Check that a cancel has been requested by the user
-						Running &= !_disconnectRequested;
+					// Decode it and print it
+					string msg = Encoding.UTF8.GetString(msgBuffer);
+					_queue.Enqueue(msg);
 				}
 
-				// Cleanup
-				_cleanupNetworkResources();
-				if (wasRunning)
-						Console.WriteLine("Disconnected.");
+				// Use less CPU
+				Thread.Sleep(10);
 
-				Console.WriteLine($"Leaving ListenForMessages()");
+				// Check the server didn't disconnect us
+				if (IsDisconnected(_client))
+				{
+					Running = false;
+					Console.WriteLine("Server has disconnected from us.\n:[");
+				}
+
+				// Check that a cancel has been requested by the user
+				Running &= !_disconnectRequested;
+			}
+
+			// Cleanup
+			CleanupNetworkResources();
+			if (wasRunning)
+				Console.WriteLine("Disconnected.");
+
+			Console.WriteLine($"Leaving ListenForMessages()");
 		}
 
 		public void Start()
 		{
-				Console.WriteLine("Start()");
-				// Get a name
-				Console.Write("Enter a name to use: ");
-				Name = Console.ReadLine();
-				Console.WriteLine("After getting the name");
+			Console.WriteLine("Start()");
+			// Get a name
+			Console.Write("Enter a name to use: ");
+			Name = Console.ReadLine();
+			Console.WriteLine("After getting the name");
 
-				_client = new TcpClient();
-				_client.SendBufferSize = BufferSize;
-				_client.ReceiveBufferSize = BufferSize;
-				Running = false;
+			_client = new TcpClient
+			{
+				SendBufferSize = BufferSize,
+				ReceiveBufferSize = BufferSize
+			};
+        	Running = false;
 
-				// connect and send messages
-				Console.WriteLine("messenger.Connect");
-				Connect();
+			// connect and send messages
+			Console.WriteLine("messenger.Connect");
+			Connect();
 
-				Console.WriteLine("messenger.ConnectViewer");
-				ConnectViewer();
+			Console.WriteLine("messenger.ConnectViewer");
+			ConnectViewer();
 
-				Console.WriteLine("messenger.HandleMessages");
-				HandleMessages();
+			Console.WriteLine("messenger.HandleMessages");
+			HandleMessages();
 
-				Console.WriteLine("end");
+			Console.WriteLine("end");
 		}
 
 } // class
-
