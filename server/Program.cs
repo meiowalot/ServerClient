@@ -45,7 +45,7 @@ Must match client settings
 {
 	"AppConfig":
 	{
-		"ServerAddress": "Ryan's Super Server",
+		"ServerDisplayName": "Ryan's Super Server",
 		"ServerAddress": "10.0.1.201",
 		"ServerPort": 6000
 	}
