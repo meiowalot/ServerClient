@@ -16,8 +16,9 @@ builder.Services.AddSingleton<Server>();
 
 var config = new AppConfig {
 	ServerDisplayName = options.ServerDisplayName,
-    ServerAddress = options.ServerAddress,
-    ServerPort = options.ServerPort
+  ServerAddress = options.ServerAddress,
+  ServerPort = options.ServerPort,
+  ShowDetailedOutput = options.ShowDetailedOutput
 };
 builder.Services.AddSingleton<AppConfig>(config);
 
@@ -27,11 +28,13 @@ var app = builder.Build();
 var ServerDisplayName = options.ServerDisplayName;
 var ServerAddress = options.ServerAddress;
 var ServerPort = options.ServerPort;
+var ShowDetailedOutput = options.ShowDetailedOutput;
 
 Console.WriteLine("Reading settings in Program.cs");
 Console.WriteLine($"Server name: {ServerDisplayName}");
 Console.WriteLine($"Server address: {ServerAddress}");
 Console.WriteLine($"Server port: {ServerPort}");
+Console.WriteLine($"Detailed output: {ShowDetailedOutput}");
 Console.WriteLine("================================================");
 
 Server? ChatServer = app.Services.GetService<Server>();
@@ -46,8 +49,9 @@ Must match client settings
 	"AppConfig":
 	{
 		"ServerDisplayName": "Ryan's Super Server",
-		"ServerAddress": "10.0.1.201",
-		"ServerPort": 6000
+		"ServerAddress": "10.0.1.42",
+		"ServerPort": 6000,
+		"ShowDetailedOutput": true
 	}
 }
 */

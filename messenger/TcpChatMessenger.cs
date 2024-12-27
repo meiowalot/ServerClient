@@ -68,7 +68,11 @@ class Client
 				_msgStream = _client.GetStream();
 
 				Console.WriteLine($"Name is {Name}");
-				byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", Name));
+
+				string msg = $"name:{Name}";
+				Console.WriteLine($"Sending message >{msg}<");
+				byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
+				//byte[] msgBuffer = Encoding.UTF8.GetBytes(String.Format("name:{0}", Name));
 
 				Console.WriteLine("Writing stream");
 				_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
@@ -139,7 +143,7 @@ class Client
 				else if (msg != string.Empty)
 				{
 					// Send the message
-					Console.WriteLine($"Sending message {msg}");
+					Console.WriteLine($"Sending message >{msg}<");
 					byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 					_msgStream?.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
 					msg = "";
@@ -197,10 +201,17 @@ class Client
 		// connects to the chat server
 		public void ConnectViewer()
 		{
+			Console.WriteLine("ConnectViewer()");
+			return;
+
+
 			// Now try to connect
 			// Send them the message that we're a viewer
 			_msgStream = _client?.GetStream();
-			byte[] msgBufferViewer = Encoding.UTF8.GetBytes("viewer");
+
+			string msg = "viewer";
+			byte[] msgBufferViewer = Encoding.UTF8.GetBytes(msg);
+			Console.WriteLine($"Sending message >{msg}<");
 			_msgStream?.Write(msgBufferViewer, 0, msgBufferViewer.Length);     // Blocks
 			return;
 		}
