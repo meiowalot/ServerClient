@@ -15,8 +15,9 @@ builder.Configuration.GetSection(nameof(AppConfig)).Bind(options);
 builder.Services.AddSingleton<Client>();
 
 var config = new AppConfig {
-    ServerAddress = options.ServerAddress,
-    ServerPort = options.ServerPort
+ 	ServerAddress = options.ServerAddress,
+	ServerPort = options.ServerPort,
+	ShowDetailedOutput = options.ShowDetailedOutput
 };
 builder.Services.AddSingleton<AppConfig>(config);
 
@@ -25,9 +26,12 @@ var app = builder.Build();
 // Test print out config vars
 var ServerAddress = options.ServerAddress;
 var ServerPort = options.ServerPort;
+var ShowDetailedOutput = options.ShowDetailedOutput;
+
 Console.WriteLine("Reading settings in Program.cs");
 Console.WriteLine($"Server address: {ServerAddress}");
 Console.WriteLine($"Server port: {ServerPort}");
+Console.WriteLine($"Detailed output: {ShowDetailedOutput}");
 Console.WriteLine("================================================");
 
 Client? ChatClient = app.Services.GetService<Client>();
@@ -42,7 +46,9 @@ Must match server settings
 	"AppConfig":
 	{
 		"ServerAddress": "10.0.1.201",
-		"ServerPort": 6000
+		"ServerPort": 6000,
+		"ShowDetailedOutput": true
+
 	}
 }
 */
