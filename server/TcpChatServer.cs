@@ -23,6 +23,8 @@ class Server
     private readonly AppConfig _config;
 
     // Names that are taken by other messengers
+		// N/S I love this structure
+		// Create class to contain ref to TcpClient and user name?
     private readonly Dictionary<TcpClient, string> _names = [];
 
     // Messages that need to be sent
@@ -37,39 +39,47 @@ class Server
     // Buffer
     public readonly int BufferSize = 2 * 1024;  // 2KB
 
+		private bool ShowDetailedOutput;
+
     // Make a new TCP chat server, with our provided name
     //public TcpChatServer(string chatName, int port)
     public Server(IConfiguration configuration, AppConfig config)
     {
+			if (ShowDetailedOutput)
+			{
         Console.WriteLine("Server:ctor: Starting up");
-
         Console.WriteLine("Chat messenger ctor, DI config");
+			}
         _configuration = configuration;
-
-        Console.WriteLine($"DI setting config with {config.ServerPort}");
         _config = config;
     }
 
     // If the server is running, this will shut down the server
     public void Shutdown()
     {
-        Running = false;
+      Running = false;
+			if (ShowDetailedOutput)
+			{
         Console.WriteLine("Shutting down server");
+			}
     }
 
     // Start running the server.  Will stop when `Shutdown()` has been called
     public void Run()
     {
-        // Some info
+      // Some info
+			if (ShowDetailedOutput)
+			{
         Console.WriteLine("Starting the \"{0}\" TCP Chat Server from {1} on port {2}.", ChatName, ServerAddress, Port);
         Console.WriteLine("Press Ctrl-C to shut down the server at any time.");
+			}
 
-        //Console.TreatControlCAsInput = true;
-        Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
-            Console.WriteLine("Ctrl-c delegate");
-            this?.Shutdown();
-            e.Cancel = true;
-        };
+			//Console.TreatControlCAsInput = true;
+			Console.CancelKeyPress += delegate(object? sender, ConsoleCancelEventArgs e) {
+					Console.WriteLine("Ctrl-c delegate");
+					this?.Shutdown();
+					e.Cancel = true;
+			};
 
         // Make the server run
         _listener?.Start();           // No backlog
@@ -119,15 +129,24 @@ class Server
 
         // Print some info
         EndPoint? endPoint = newClient.Client.RemoteEndPoint;
+
+			if (ShowDetailedOutput)
+			{
+        Console.WriteLine("====================================");
         Console.WriteLine("Handling a new client from {0}...", endPoint);
+			}
 
         // Let them identify themselves
         byte[] msgBuffer = new byte[BufferSize];
         int bytesRead = await netStream.ReadAsync(msgBuffer, 0, msgBuffer.Length);     // Blocks
         if (bytesRead > 0)
         {
-            Console.WriteLine("Read bytes");
             string msg = Encoding.UTF8.GetString(msgBuffer, 0, bytesRead);
+			if (ShowDetailedOutput)
+			{
+            Console.WriteLine("Read bytes");
+            Console.WriteLine($"msg: >{msg}<");
+			}
 
             if (endPoint is null) 
             {
@@ -142,24 +161,37 @@ class Server
             if (msg == "viewer")
             {
                 // They just want to watch
-                Console.WriteLine($"=======Adding viewer @ {addr}===========");
+							if (ShowDetailedOutput)
+							{
+												Console.WriteLine($"=======Adding viewer @ {addr}===========");
+							}
                 good = true;
                 _viewers.Add(newClient);
                 ShowViewers();
 
+							if (ShowDetailedOutput)
+							{
                 Console.WriteLine("{0} is a Viewer.", endPoint);
+							}
 
-                // Send them a "hello message"
+              // Send them a "hello message"
+							if (ShowDetailedOutput)
+							{
                 msg = String.Format("Welcome to the \"{0}\" Chat Server!", ChatName);
-                msgBuffer = Encoding.UTF8.GetBytes(msg);
-                await netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);
+							}
+							msgBuffer = Encoding.UTF8.GetBytes(msg);
+							await netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);
             }
             else if (msg.StartsWith("name:"))
             {
-                Console.WriteLine("Signing in with name");
-                // Okay, so they might be a messenger
-                string name = msg[(msg.IndexOf(':') + 1)..];
+              // Okay, so they might be a messenger
+              string name = msg[(msg.IndexOf(':') + 1)..];
+
+							if (ShowDetailedOutput)
+							{
+                Console.WriteLine("=======Signing in with name===========");
                 Console.WriteLine($"Name is {name}");
+							}
 
                 if ((name != string.Empty) && (!_names.ContainsValue(name)))
                 {
@@ -167,12 +199,20 @@ class Server
                     good = true;
                     _names.Add(newClient, name);
                     _messengers.Add(newClient);
-
-                    Console.WriteLine($"====================Adding CHAT client as viewer @ {addr}======================");
                     _viewers.Add(newClient);
+
+								if (ShowDetailedOutput)
+								{
+                    Console.WriteLine($"====================Adding CHAT client as viewer @ {addr}======================");
+								}
+                    //_viewers.Add(newClient);
+                    ShowMessengers();
                     ShowViewers();
 
+								if (ShowDetailedOutput)
+								{
                     Console.WriteLine("{0} is a Messenger with the name {1}.", endPoint, name);
+								}
 
                     // Tell the viewers we have a new messenger
                     _messageQueue.Enqueue(String.Format("{0} has joined the chat.", name));
@@ -181,7 +221,10 @@ class Server
             else
             {
                 // Wasn't either a viewer or messenger, clean up anyways.
+							if (ShowDetailedOutput)
+							{
                 Console.WriteLine("Wasn't able to identify {0} as a Viewer or Messenger.", endPoint);
+							}
                 CleanupClient(newClient);
             }
         }
@@ -191,16 +234,67 @@ class Server
             newClient.Close();
     }
 
-    private void ShowViewers()
+    private void ShowMessengers()
     {
-        if (_viewers.Count == 0)
+			if (ShowDetailedOutput)
+			{
+				Console.WriteLine("ShowMessengers()");
+			}
+
+        if (_messengers.Count == 0)
         {
-            Console.WriteLine("Viewers has 0 items");
+					if (ShowDetailedOutput)
+					{
+            Console.WriteLine("Messengers has 0 items");
+					}
             return;
         }
 
-        int i = 0;	
-        Console.WriteLine("Viewers:");
+        int i = 1;
+        Console.WriteLine($"Messengers: ({_messengers.Count})");
+        foreach (TcpClient v in _messengers.ToArray())
+        {
+            if (v.Client.RemoteEndPoint is null)
+                continue;
+            var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
+            var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
+            var addr = $"{ip}:{port}";
+
+						// Get username
+						// Dictionary<TcpClient, string> _names = [];
+						foreach(KeyValuePair<TcpClient, string> entry in _names)
+						{
+							if (entry.Key == v)
+							{
+								Console.WriteLine($"{i++}. {addr} ({entry.Value})");
+								break;
+							}
+
+						}
+        }
+			if (ShowDetailedOutput)
+			{
+				Console.WriteLine("End ShowMessengers()");
+			}
+    }
+
+    private void ShowViewers()
+    {
+			if (ShowDetailedOutput)
+			{
+				Console.WriteLine("ShowViewers()");
+			}
+        if (_viewers.Count == 0)
+        {
+					if (ShowDetailedOutput)
+					{
+            Console.WriteLine("Viewers has 0 items");
+					}
+          return;
+        }
+
+        int i = 1;
+        Console.WriteLine($"Viewers: ({_viewers.Count})");
         foreach (TcpClient v in _viewers.ToArray())
         {
             if (v.Client.RemoteEndPoint is null)
@@ -208,8 +302,26 @@ class Server
             var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
             var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
             var addr = $"{ip}:{port}";
-            Console.WriteLine($"{++i}. {addr}");
+
+
+						// Get username
+						// Dictionary<TcpClient, string> _names = [];
+						foreach(KeyValuePair<TcpClient, string> entry in _names)
+						{
+							if (entry.Key == v)
+							{
+								Console.WriteLine($"{i++}. {addr} ({entry.Value})");
+								//Console.WriteLine($"Found name {entry.Value}");
+								break;
+							}
+
+						}
+            //Console.WriteLine($"{_names[i-1]}");
         }
+			if (ShowDetailedOutput)
+			{
+				Console.WriteLine("End ShowViewers()");
+			}
     }
 
     // Sees if any of the clients have left the chat server
@@ -223,6 +335,7 @@ class Server
                 Console.WriteLine("Viewer {0} has left.", v.Client.RemoteEndPoint);
 
                 // cleanup on our end
+                _messengers.Remove(v);     // Remove from list
                 _viewers.Remove(v);     // Remove from list
                 CleanupClient(v);
             }
@@ -237,7 +350,10 @@ class Server
                 string name = _names[m];
 
                 // Tell the viewers someone has left
-                Console.WriteLine("Messeger {0} has left.", name);
+			if (ShowDetailedOutput)
+			{
+			}
+                Console.WriteLine("Messenger {0} has left.", name);
                 _messageQueue.Enqueue(String.Format("{0} has left the chat", name));
 
                 // clean up on our end 
@@ -262,10 +378,14 @@ class Server
 
                 // Attach a name to it and shove it into the queue
                 string msg = String.Format("{0}: {1}", _names[m], Encoding.UTF8.GetString(msgBuffer));
-                                    var msgSender = _names[m];	
-                                    Console.WriteLine($"Enqueuing message {msg} from {msgSender}");
+                var msgSender = _names[m];
+                Console.WriteLine($"Enqueuing message {msg} from {msgSender}");
                 _messageQueue.Enqueue(msg);
             }
+						else
+						{
+
+						}
         }
     }
 
@@ -280,13 +400,16 @@ class Server
             // Send the message to each viewer
             foreach (TcpClient v in _viewers)
             {
-                if (v.Client.RemoteEndPoint is null)
+                if (v?.Client.RemoteEndPoint is null)
                     continue;
                 var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
                 var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
                 var addr = $"{ip}:{port}";
+							if (ShowDetailedOutput)
+							{
                 Console.WriteLine($"Sending message {msg} to viewer @ {addr}");
-v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
+							}
+							v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
             }
         }
 
@@ -313,8 +436,12 @@ v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
     // cleans up resources for a TcpClient
     private static void CleanupClient(TcpClient client)
     {
+			try
+			{
         client.GetStream().Close();     // Close network stream
         client.Close();                 // Close client
+			}
+			catch (Exception) {}
     }
 
     protected void InterruptHandler(object? sender, ConsoleCancelEventArgs args)
@@ -325,13 +452,19 @@ v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
 
     public void Start()
     {
-        Console.WriteLine("Server:Start()");
+			Console.WriteLine("Server:Start()");
 
-        ChatName = _config.ServerDisplayName ?? "(Default Name)";
-        ServerAddress  = _config.ServerAddress;
-        Port = _config.ServerPort;
-        Console.WriteLine($"Read config settings {ChatName}, {ServerAddress}, {Port}");
-        _listener = new TcpListener(IPAddress.Parse(ServerAddress ?? String.Empty), Port);
-        Run();
+			ChatName = _config.ServerDisplayName ?? "(Default Name)";
+			ServerAddress  = _config.ServerAddress;
+			Port = _config.ServerPort;
+			ShowDetailedOutput = _config.ShowDetailedOutput;
+
+			if (ShowDetailedOutput)
+			{
+				Console.WriteLine($"Read config settings {ChatName}, {ServerAddress}, {Port}, Details: {ShowDetailedOutput}");
+			}
+			_listener = new TcpListener(IPAddress.Parse(ServerAddress ?? String.Empty), Port);
+			Run();
     }
+
 }
