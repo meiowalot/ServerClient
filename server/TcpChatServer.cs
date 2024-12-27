@@ -400,7 +400,7 @@ class Server
             // Send the message to each viewer
             foreach (TcpClient v in _viewers)
             {
-                if (v?.Client.RemoteEndPoint is null)
+                if (v?.Client?.RemoteEndPoint is null)
                     continue;
                 var ip = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Address.ToString());
                 var port = IPAddress.Parse(((IPEndPoint)v.Client.RemoteEndPoint).Port.ToString());
