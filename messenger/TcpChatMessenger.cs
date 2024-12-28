@@ -83,9 +83,7 @@ class Client
 			_msgStream = _client.GetStream();
 
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine($"Name is {Name}");
-			}
 
 			string msg = $"name:{Name}";
 			if (ShowDetailedOutput)
@@ -113,9 +111,7 @@ class Client
 		{
 			CleanupNetworkResources();
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine("Wasn't able to connect to the server at {0}.", endPoint);
-			}
 		}
 	}
 
@@ -159,9 +155,6 @@ class Client
 				else	
 				{
 					Console.Write(key.KeyChar);
-					if (ShowDetailedOutput)
-					{
-					}
 					strKeysPressed += key.KeyChar;
 				}
 			}
@@ -187,9 +180,7 @@ class Client
 			{
 				// Send the message
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine($"Sending message >{msg}<");
-				}
 				byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 				_msgStream?.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
 				msg = "";
@@ -198,6 +189,7 @@ class Client
 			{
 				if(_queue.TryDequeue(out string? str))
 				{
+					// Print response
 					Console.WriteLine(str);
 					Console.Write("> ");
 				}
@@ -218,9 +210,7 @@ class Client
 			{
 				Running = false;
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("Server has disconnected from us.\n:[");
-				}
 			}
 		}
 
@@ -229,9 +219,7 @@ class Client
 			Console.WriteLine("Disconnected.");
 
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine($"Leaving SendMessages()");
-		}
 	}
 
 	// Cleans any leftover network resources
@@ -308,9 +296,7 @@ class Client
 			if (messageLength > 0)
 			{
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("New incoming message of {0} bytes", messageLength);
-				}
 
 				// Read the whole message
 				byte[] msgBuffer = new byte[messageLength];
@@ -351,9 +337,7 @@ class Client
 			Console.WriteLine("Disconnected.");
 
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine($"Leaving ListenForMessages()");
-		}
 	}
 
 	public void Start()

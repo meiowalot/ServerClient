@@ -535,7 +535,7 @@ class Server
 						if (entry.Value == Recipient && entry.Key == v)
 						{
 							if (ShowDetailedOutput)
-								Console.WriteLine($"Founs match, send to them");
+								Console.WriteLine($"Found match, send to them");
 							byte[] msgBuffer = Encoding.UTF8.GetBytes(MessageToSend);
 							v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
 							break;
