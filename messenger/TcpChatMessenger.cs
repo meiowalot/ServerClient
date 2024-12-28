@@ -40,15 +40,11 @@ class Client
 	public Client(IConfiguration configuration, AppConfig config)
 	{
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine("Chat messenger ctor, DI config");
-		}
 		_configuration = configuration;
 
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine($"DI setting config with {config.ServerPort}");
-		}
 		_config = config;
 	}
 
@@ -87,28 +83,20 @@ class Client
 			_msgStream = _client.GetStream();
 
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine($"Name is {Name}");
-			}
 
 			string msg = $"name:{Name}";
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine($"Sending message >{msg}<");
-			}
 			byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine("Writing stream");
-			}
 			_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
 
 			// If we're still connected after sending our name, that means the server accepts us
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine("Still connected after sending our name, server accepts us");
-			}
 			if (!IsDisconnected(_client))
 				Running = true;
 			else
@@ -116,18 +104,14 @@ class Client
 				// Name was probably taken...
 				CleanupNetworkResources();
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("The server rejected us; \"{0}\" is probably in use.", Name);
-				}
 			}
 		}
 		else
 		{
 			CleanupNetworkResources();
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine("Wasn't able to connect to the server at {0}.", endPoint);
-			}
 		}
 	}
 
@@ -171,10 +155,6 @@ class Client
 				else	
 				{
 					Console.Write(key.KeyChar);
-					if (ShowDetailedOutput)
-					{
-						//Console.WriteLine("Recv letter: " + key.KeyChar);
-					}
 					strKeysPressed += key.KeyChar;
 				}
 			}
@@ -185,18 +165,22 @@ class Client
 			{
 				// User wants to quit
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("Disconnecting...");
-				}
 				Running = false;
+			}
+			else if (msg == "listusers")
+			{
+				if (ShowDetailedOutput)
+					Console.WriteLine($"listusers");
+				byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
+				_msgStream?.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
+				msg = "";
 			}
 			else if (msg != string.Empty)
 			{
 				// Send the message
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine($"Sending message >{msg}<");
-				}
 				byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 				_msgStream?.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
 				msg = "";
@@ -205,7 +189,9 @@ class Client
 			{
 				if(_queue.TryDequeue(out string? str))
 				{
-					Console.WriteLine("Msg from server: " + str);
+					// Print response
+					Console.WriteLine(str);
+					Console.Write("> ");
 				}
 				else 
 				{
@@ -224,9 +210,7 @@ class Client
 			{
 				Running = false;
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("Server has disconnected from us.\n:[");
-				}
 			}
 		}
 
@@ -235,9 +219,7 @@ class Client
 			Console.WriteLine("Disconnected.");
 
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine($"Leaving SendMessages()");
-		}
 	}
 
 	// Cleans any leftover network resources
@@ -256,6 +238,11 @@ class Client
 		{
 			Socket s = client.Client;
 			return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
+		}
+		catch(ObjectDisposedException)
+		{
+			// We got a socket error, assume it's disconnected
+			return true;
 		}
 		catch(SocketException)
 		{
@@ -309,9 +296,7 @@ class Client
 			if (messageLength > 0)
 			{
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("New incoming message of {0} bytes", messageLength);
-				}
 
 				// Read the whole message
 				byte[] msgBuffer = new byte[messageLength];
@@ -352,9 +337,7 @@ class Client
 			Console.WriteLine("Disconnected.");
 
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine($"Leaving ListenForMessages()");
-		}
 	}
 
 	public void Start()
