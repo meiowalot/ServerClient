@@ -144,6 +144,9 @@ class Server
 		if (bytesRead > 0)
 		{
 			string msg = Encoding.UTF8.GetString(msgBuffer, 0, bytesRead);
+
+				Console.WriteLine($"msg: >{msg}<");
+
 			if (ShowDetailedOutput)
 			{
 				Console.WriteLine("Read bytes");
@@ -183,6 +186,24 @@ class Server
 				}
 				msgBuffer = Encoding.UTF8.GetBytes(msg);
 				await netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);
+			}
+			else if (msg == "listusers")
+			{
+				Console.WriteLine($"Request for names");
+
+				// Dictionary _names: values = names
+				string UserMsg;
+				if (_names.Count == 0)
+					UserMsg = "Users: (None)";
+				else
+				{
+					string UserList = String.Join("\n", _names.Values); 
+					UserMsg = $"Users:\n{UserList}";
+				}	
+				if (ShowDetailedOutput)
+					Console.WriteLine($"Request for names: {UserMsg}");
+				_messageQueue.Enqueue(UserMsg);
+
 			}
 			else if (msg.StartsWith("name:"))
 			{
@@ -377,7 +398,9 @@ class Server
 				m.GetStream().ReadAsync(msgBuffer, 0, msgBuffer.Length);     // Blocks
 
 				// Attach a name to it and shove it into the queue
-				string msg = String.Format("{0}: {1}", _names[m], Encoding.UTF8.GetString(msgBuffer));
+				string msg = String.Format("{0}: {1}",
+					_names[m],
+					Encoding.UTF8.GetString(msgBuffer));
 				var msgSender = _names[m];
 				Console.WriteLine($"Enqueuing message {msg} from {msgSender}");
 				_messageQueue.Enqueue(msg);

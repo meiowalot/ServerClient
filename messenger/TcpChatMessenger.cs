@@ -190,9 +190,17 @@ class Client
 				}
 				Running = false;
 			}
+			else if (msg == "listusers")
+			{
+				Console.WriteLine($"listusers");
+				byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
+				_msgStream?.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
+				msg = "";
+			}
 			else if (msg != string.Empty)
 			{
 				// Send the message
+				Console.WriteLine($"Sending message >{msg}<");
 				if (ShowDetailedOutput)
 				{
 					Console.WriteLine($"Sending message >{msg}<");
