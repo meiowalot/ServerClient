@@ -186,26 +186,6 @@ class Server
 				msgBuffer = Encoding.UTF8.GetBytes(msg);
 				await netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);
 			}
-/*
-			else if (msg.Contains("listusers"))
-			{
-				Console.WriteLine($"Request for names");
-
-				// Dictionary _names: values = names
-				string UserMsg;
-				if (_names.Count == 0)
-					UserMsg = "Users: (None)";
-				else
-				{
-					string UserList = String.Join("\n", _names.Values); 
-					UserMsg = $"Users:\n{UserList}";
-				}	
-				if (ShowDetailedOutput)
-					Console.WriteLine($"Request for names: {UserMsg}");
-				_messageQueue.Enqueue(UserMsg);
-
-			}
-*/
 			else if (msg.StartsWith("name:"))
 			{
 				// Okay, so they might be a messenger
@@ -229,7 +209,6 @@ class Server
 					{
 						Console.WriteLine($"====================Adding CHAT client as viewer @ {addr}======================");
 					}
-					//_viewers.Add(newClient);
 					ShowMessengers();
 					ShowViewers();
 
@@ -337,7 +316,6 @@ class Server
 					break;
 				}
 			}
-			//Console.WriteLine($"{_names[i-1]}");
 		}
 		if (ShowDetailedOutput)
 		{
@@ -475,6 +453,19 @@ class Server
 					MessageToSend = UserMsg;
 
 				}
+				else if (Action == "help" || Action == "?")
+				{
+					MessageToSend = 
+					"""
+					Usage: ?/help: this screen
+					chat:msg       Send msg to all users
+					chat:user:msg  Send msg to user
+					listusers      Show logged-on users
+					quit           Exit chat program
+					""";
+					Sender = MainMessage[0].Trim(charsToTrim);
+
+				}
 				else if (Action == "chat")
 				{
 					if (MainMessage.Length == 4)
@@ -482,14 +473,26 @@ class Server
 						// Personal message
 						// user:chat:recip:Message
 						Console.WriteLine("Personal message");
-						//Sender = MainMessage[0].Trim(charsToTrim);
-						Recipient = MainMessage[2].Trim(charsToTrim);
-						MessageToSend = MainMessage[3].Trim(charsToTrim);
-						MessageToSend = $"{Sender} sends you private message: {MessageToSend}";
 
-						Console.WriteLine($"Message {MessageToSend} from {Sender} to {Recipient}");
-						if (ShowDetailedOutput)
-							Console.WriteLine($"Message {MessageToSend} from {Sender} to {Recipient}");
+						// Validate user logged on
+						Recipient = MainMessage[2].Trim(charsToTrim);
+
+						// Look for name in viewers
+						if (!_names.Values.Contains(Recipient))
+						{
+							Console.WriteLine($"{Recipient} not logged on");
+							MessageToSend = $"Sorry, no such user {Recipient}";
+							Recipient = Sender;
+						}
+						else
+						{
+							Console.WriteLine($"{Recipient} logged on");
+
+							MessageToSend = MainMessage[3].Trim(charsToTrim);
+							MessageToSend = $"{Sender} sends you private message: {MessageToSend}";
+							if (ShowDetailedOutput)
+								Console.WriteLine($"Message {MessageToSend} from {Sender} to {Recipient}");
+						}
 					}
 					else if (MainMessage.Length == 3)
 					{

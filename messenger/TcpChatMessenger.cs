@@ -186,7 +186,6 @@ class Client
 			else if (msg != string.Empty)
 			{
 				// Send the message
-				Console.WriteLine($"Sending message >{msg}<");
 				if (ShowDetailedOutput)
 				{
 					Console.WriteLine($"Sending message >{msg}<");
@@ -199,8 +198,8 @@ class Client
 			{
 				if(_queue.TryDequeue(out string? str))
 				{
-					//Console.WriteLine("Msg from server: " + str);
 					Console.WriteLine(str);
+					Console.Write("> ");
 				}
 				else 
 				{
@@ -251,6 +250,11 @@ class Client
 		{
 			Socket s = client.Client;
 			return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
+		}
+		catch(ObjectDisposedException)
+		{
+			// We got a socket error, assume it's disconnected
+			return true;
 		}
 		catch(SocketException)
 		{
