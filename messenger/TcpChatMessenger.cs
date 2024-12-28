@@ -40,15 +40,11 @@ class Client
 	public Client(IConfiguration configuration, AppConfig config)
 	{
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine("Chat messenger ctor, DI config");
-		}
 		_configuration = configuration;
 
 		if (ShowDetailedOutput)
-		{
 			Console.WriteLine($"DI setting config with {config.ServerPort}");
-		}
 		_config = config;
 	}
 
@@ -93,22 +89,16 @@ class Client
 
 			string msg = $"name:{Name}";
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine($"Sending message >{msg}<");
-			}
 			byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine("Writing stream");
-			}
 			_msgStream.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
 
 			// If we're still connected after sending our name, that means the server accepts us
 			if (ShowDetailedOutput)
-			{
 				Console.WriteLine("Still connected after sending our name, server accepts us");
-			}
 			if (!IsDisconnected(_client))
 				Running = true;
 			else
@@ -116,9 +106,7 @@ class Client
 				// Name was probably taken...
 				CleanupNetworkResources();
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("The server rejected us; \"{0}\" is probably in use.", Name);
-				}
 			}
 		}
 		else
@@ -173,7 +161,6 @@ class Client
 					Console.Write(key.KeyChar);
 					if (ShowDetailedOutput)
 					{
-						//Console.WriteLine("Recv letter: " + key.KeyChar);
 					}
 					strKeysPressed += key.KeyChar;
 				}
@@ -185,14 +172,13 @@ class Client
 			{
 				// User wants to quit
 				if (ShowDetailedOutput)
-				{
 					Console.WriteLine("Disconnecting...");
-				}
 				Running = false;
 			}
 			else if (msg == "listusers")
 			{
-				Console.WriteLine($"listusers");
+				if (ShowDetailedOutput)
+					Console.WriteLine($"listusers");
 				byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
 				_msgStream?.Write(msgBuffer, 0, msgBuffer.Length);   // Blocks
 				msg = "";

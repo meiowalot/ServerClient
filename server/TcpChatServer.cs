@@ -3,9 +3,10 @@
 // License:   Unlicense (http://unlicense.org/)        
 
 using Microsoft.Extensions.Configuration;
-using System.Text;
+using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace TcpChatServer;
 
@@ -115,11 +116,11 @@ class Server
 
 	private async void HandleNewConnection()
 	{
-		// There is (at least) one, see what they want
 		bool good = false;
 
 		if (_listener is null)
 			return;
+
 		TcpClient newClient = _listener.AcceptTcpClient();
 		NetworkStream netStream = newClient.GetStream();
 
@@ -144,8 +145,6 @@ class Server
 		if (bytesRead > 0)
 		{
 			string msg = Encoding.UTF8.GetString(msgBuffer, 0, bytesRead);
-
-				Console.WriteLine($"msg: >{msg}<");
 
 			if (ShowDetailedOutput)
 			{
@@ -187,7 +186,8 @@ class Server
 				msgBuffer = Encoding.UTF8.GetBytes(msg);
 				await netStream.WriteAsync(msgBuffer, 0, msgBuffer.Length);
 			}
-			else if (msg == "listusers")
+/*
+			else if (msg.Contains("listusers"))
 			{
 				Console.WriteLine($"Request for names");
 
@@ -205,6 +205,7 @@ class Server
 				_messageQueue.Enqueue(UserMsg);
 
 			}
+*/
 			else if (msg.StartsWith("name:"))
 			{
 				// Okay, so they might be a messenger
@@ -333,7 +334,6 @@ class Server
 				if (entry.Key == v)
 				{
 					Console.WriteLine($"{i++}. {addr} ({entry.Value})");
-					//Console.WriteLine($"Found name {entry.Value}");
 					break;
 				}
 			}
@@ -353,11 +353,17 @@ class Server
 		{
 			if (IsDisconnected(v))
 			{
-				Console.WriteLine("Viewer {0} has left.", v.Client.RemoteEndPoint);
+				// Show their name?
+				string chatUser = _names[v];
+
+				Console.WriteLine("Viewer {0} has left ({1})",
+					chatUser,
+					v.Client.RemoteEndPoint);
 
 				// cleanup on our end
 				_messengers.Remove(v);     // Remove from list
 				_viewers.Remove(v);     // Remove from list
+				_names.Remove(v);
 				CleanupClient(v);
 			}
 		}
@@ -418,43 +424,86 @@ class Server
 		string? MessageToSend;
 		string? Sender;
 		string? Recipient;
+		string? Action;
 
 		foreach (string msg in _messageQueue)
 		{
-			//byte[] msgBuffer = Encoding.UTF8.GetBytes(msg);
+			Console.WriteLine($"Queue message: >{msg}<");
 			MessageToSend = msg;
 			Sender = null;
 			Recipient = null;
 
 			char[] charsToTrim = { ' ' };
 
+			// Set Recipient
+			// Set message
+
 			if (msg.Contains(":"))
 			{
+				Console.WriteLine("msg has :");
 				// Default command to "message"
 				// Later: Look for "users"
 
 				// It's a chat message, so format, decide if personal
 				string[] MainMessage = msg.Split(":");
-				if (MainMessage.Length == 3)
+
+				// chat:user:Message....
+				// chat:Message
+				Sender = MainMessage[0].Trim(charsToTrim);
+				Action = MainMessage[1].Trim(charsToTrim);
+				Console.WriteLine($"Action is {Action}");
+
+				if (Action == "listusers")
 				{
-					// Personal message
-					Sender = MainMessage[0].Trim(charsToTrim);
-					Recipient = MainMessage[1].Trim(charsToTrim);
-					MessageToSend = MainMessage[2].Trim(charsToTrim);
-					MessageToSend = $"{Sender} says to you: {MessageToSend}";
+					Recipient = Sender;
 
 					if (ShowDetailedOutput)
-						Console.WriteLine($"Message {MessageToSend} from {Sender} to {Recipient}");
+						Console.WriteLine($"Request for names, Dict count {_names.Count}");
+
+					// Dictionary _names: values = names
+					string UserMsg;
+					if (_names.Count == 0)
+						UserMsg = "Users: (None)";
+					else
+					{
+						string UserList = String.Join("\n", _names.Values); 
+						UserMsg = $"Users:\n{UserList}";
+					}	
+					if (ShowDetailedOutput)
+						Console.WriteLine($"Request for names: {UserMsg}");
+
+					MessageToSend = UserMsg;
+
 				}
-				else
+				else if (Action == "chat")
 				{
-					// Broadcast message
-					Sender = MainMessage[0].Trim(charsToTrim);
-					MessageToSend = MainMessage[1].Trim(charsToTrim);
-					MessageToSend = $"{Sender} says to all: {MessageToSend}";
+					if (MainMessage.Length == 4)
+					{
+						// Personal message
+						// user:chat:recip:Message
+						Console.WriteLine("Personal message");
+						//Sender = MainMessage[0].Trim(charsToTrim);
+						Recipient = MainMessage[2].Trim(charsToTrim);
+						MessageToSend = MainMessage[3].Trim(charsToTrim);
+						MessageToSend = $"{Sender} sends you private message: {MessageToSend}";
 
-					if (ShowDetailedOutput)
-						Console.WriteLine($"Message {MessageToSend} from {Sender} to (All)");
+						Console.WriteLine($"Message {MessageToSend} from {Sender} to {Recipient}");
+						if (ShowDetailedOutput)
+							Console.WriteLine($"Message {MessageToSend} from {Sender} to {Recipient}");
+					}
+					else if (MainMessage.Length == 3)
+					{
+						// Broadcast message
+						// sender:chat:msg
+						Console.WriteLine("System-wide message");
+						Sender = MainMessage[0].Trim(charsToTrim);
+						Recipient = null;
+						MessageToSend = MainMessage[2].Trim(charsToTrim);
+						MessageToSend = $"{Sender} says to all: {MessageToSend}";
+
+						if (ShowDetailedOutput)
+							Console.WriteLine($"Message {MessageToSend} from {Sender} to (All)");
+					}
 				}
 			}
 
@@ -499,7 +548,6 @@ class Server
 					v.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);    // Blocks
 				}
 			}
-
 		}
 
 		// clear out the queue
@@ -517,7 +565,10 @@ class Server
 		}
 		catch(SocketException)
 		{
-			// We got a socket error, assume it's disconnected
+			return true;
+		}
+		catch(NullReferenceException)
+		{
 			return true;
 		}
 	}
