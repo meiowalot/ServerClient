@@ -205,7 +205,8 @@ class Client
 			{
 				if(_queue.TryDequeue(out string? str))
 				{
-					Console.WriteLine("Msg from server: " + str);
+					//Console.WriteLine("Msg from server: " + str);
+					Console.WriteLine(str);
 				}
 				else 
 				{
